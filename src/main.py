@@ -2,22 +2,25 @@ import argparse
 import sys
 import dehaze
 import cv2
-
+import numpy as np
 
 parser = argparse.ArgumentParser(description="Implement Recover Haze image.")
+parser.add_argument("-o", "--out", type=str, default="../result/out.jpg",
+                    help="output image path (default: ../result/out.jpg)")
+parser.add_argument("-s", "--patch_size", type=int,
+                    default=15, help='local patch size (default: 15)')
+parser.add_argument("-p", "--top_portion", type=float, default=0.001,
+                    help='top atmosphere pixel portion (default:0.001)')
+parser.add_argument("--t0", type=float, default=0.1,
+                    help='minimum transmission rate(0 - 1) (default: 0.1)')
+parser.add_argument("--omega", type=float, default=0.95,
+                    help='natural transmission constant(0 - 1) (default: 0.95)')
 parser.add_argument("-i", "--impath", type=str, required=True,
                     help="input image path")
-parser.add_argument("-o", "--out", type=str, default="out.jpg",
-                    help="output image path (default: out.jpg)")
-parser.add_argument("-s", "--patch_size", type=int, default=15)
-parser.add_argument("-p", "--top_portion", type=float, default=0.001)
-parser.add_argument("--t0", type=float, default=0.1)
-parser.add_argument("--omega", type=float, default=0.95)
 
 
 def main(args):
-    img = cv2.imread(args.impath)
-    print(img.shape)
+    img = np.array(cv2.imread(args.impath), dtype=np.float32)
     img_dehaze = dehaze.dehaze(
         img, args.patch_size, args.top_portion, args.t0, args.omega)
     cv2.imwrite(args.out, img_dehaze)
