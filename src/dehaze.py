@@ -1,5 +1,18 @@
 import numpy as np
-import cv2
+import matplotlib.pyplot as plt
+import skimage.color
+import skimage.exposure
+import skimage
+from cv2.ximgproc import guidedFilter
+
+
+def show_img(title, img, cmap=None):
+    plt.figure()
+    plt.title(title)
+    if cmap:
+        plt.imshow(img, cmap=cmap)
+    else:
+        plt.imshow(img)
 
 
 def get_dark_channel(img, patch_size):
@@ -20,11 +33,11 @@ def get_dark_channel(img, patch_size):
     darkch = np.zeros((M, N), dtype=np.float32)
     padded = np.pad(img, ((patch_size // 2, patch_size // 2),
                           (patch_size // 2, patch_size // 2), (0, 0)), 'edge')
-    cv2.imshow('pad', padded)
+    show_img('pad', padded)
     for i, j in np.ndindex(darkch.shape):
         darkch[i, j] = np.min(
             padded[i:i + patch_size, j:j + patch_size, :])  # CVPR09, eq.5
-    cv2.imshow('darkch', darkch)
+    show_img('darkch', darkch, cmap='gray')
     return darkch
 
 
@@ -70,9 +83,10 @@ def get_transmission(img, atmos, darkch, omega, patch_size):
     raw_t = 1 - omega * \
         get_dark_channel(img / atmos, patch_size)  # CVPR09, eq.12
 
-    cv2.imshow('raw_t', raw_t)
+    show_img('raw_t', raw_t, cmap='gray')
     # refinement by guided filter
-    refine_t = cv2.ximgproc.guidedFilter(img, raw_t, 50, 1e-4)
+    refine_t = guidedFilter(img.astype(np.float32),
+                            raw_t.astype(np.float32), 50, 1e-4)
     return refine_t
 
 
@@ -95,22 +109,23 @@ def get_radiance(img, atmos, t, t0):
     t_tiled = np.zeros_like(img, dtype=np.float32)  # tiled to M * N * 3
     for i in range(3):
         t_tiled[:, :, i] = t_clip
-    cv2.imshow('refine_t', t_clip)
-    return (img - atmos) / t_tiled + atmos
+    show_img('refine_t', t_clip, cmap='gray')
+    radiance = np.clip((img - atmos) / t_tiled + atmos, a_min=0, a_max=255)
+    return radiance
 
 
 def brightness_equalize(img):
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    img_hsv[..., 2] = cv2.equalizeHist(img_hsv[..., 2])
-    img_equal = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
-    cv2.imshow('hsv equalize', img_equal)
+    img_hsv = skimage.color.rgb2hsv(img)
+    img_hsv[..., 2] = skimage.exposure.equalize_hist(img_hsv[..., 2])
+    img_equal = skimage.color.hsv2rgb(img_hsv)
+
+    show_img('hsv equalize', img_equal)
 
     # Lab colorspace has alittle bit brighter, not knowing why
     # img_lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     # img_lab[..., 0] = cv2.equalizeHist(img_lab[..., 0])
     # img_equal = cv2.cvtColor(img_lab, cv2.COLOR_LAB2BGR)
-    # cv2.imshow('lab equalize', img_equal)
-    cv2.waitKey(0)
+    # show_img('lab equalize', img_equal)
     return img_equal
 
 
@@ -119,8 +134,7 @@ def dehaze(img, patch_size, top_p, t0, omega):
     atmos = get_atmosphere(img, darkch, top_p)
     refine_t = get_transmission(img, atmos, darkch, omega, patch_size)
     img_dehaze = get_radiance(img, atmos, refine_t, t0)
-    # img_dehaze = img_dehaze.astype(np.uint8)
-    img_dehaze = (img_dehaze / np.max(img_dehaze) * 255).astype(np.uint8)
-    cv2.imshow('dehaze img(wo equalize)', img_dehaze)
-    img_equal = brightness_equalize(img_dehaze)
+    show_img('dehaze img(wo equalize)', img_dehaze.astype(np.uint8))
+    img_equal = brightness_equalize((img_dehaze.astype(np.uint8)))
+    plt.show()
     return img_equal

@@ -1,8 +1,8 @@
 import argparse
 import sys
 import dehaze
-import cv2
 import numpy as np
+import skimage.io
 
 parser = argparse.ArgumentParser(description="Implement Recover Haze image.")
 parser.add_argument("-o", "--out", type=str, default="../result/out.jpg",
@@ -20,10 +20,10 @@ parser.add_argument("-i", "--impath", type=str, required=True,
 
 
 def main(args):
-    img = np.array(cv2.imread(args.impath), dtype=np.float32)
+    img = (skimage.io.imread(args.impath).astype(np.float32))
     img_dehaze = dehaze.dehaze(
         img, args.patch_size, args.top_portion, args.t0, args.omega)
-    cv2.imwrite(args.out, img_dehaze)
+    skimage.io.imsave(args.out, img_dehaze)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -36,6 +36,4 @@ if __name__ == "__main__":
     if args.omega <= 0 or args.omega >= 1:
         print("Omega should be in (0,1).")
         sys.exit()
-    # if args.k <= 0:
-    #     print("window size should be positive.")
     main(args)
