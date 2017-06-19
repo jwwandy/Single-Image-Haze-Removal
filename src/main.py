@@ -12,9 +12,9 @@ parser.add_argument("-s", "--patch_size", type=int,
 parser.add_argument("-p", "--top_portion", type=float, default=0.001,
                     help='top atmosphere pixel portion (default:0.001)')
 parser.add_argument("--t0", type=float, default=0.1,
-                    help='minimum transmission rate(0 - 1) (default: 0.1)')
+                    help='minimum transmission rate(0-1) (default: 0.1)')
 parser.add_argument("--omega", type=float, default=0.95,
-                    help='natural transmission constant(0 - 1) (default: 0.95)')
+                    help='natural transmission constant(0-1) (default: 0.95)')
 parser.add_argument("-i", "--impath", type=str, required=True,
                     help="input image path")
 
