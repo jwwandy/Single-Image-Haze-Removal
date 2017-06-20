@@ -4,6 +4,7 @@ import dehaze
 import numpy as np
 import skimage.io
 import os
+import noise
 
 parser = argparse.ArgumentParser(description="Implement Recover Haze image.")
 parser.add_argument("-o", "--out", type=str, default="../result/out",
@@ -18,12 +19,26 @@ parser.add_argument("--omega", type=float, default=0.95,
                     help='natural transmission constant(0-1) (default: 0.95)')
 parser.add_argument("-i", "--impath", type=str, required=True,
                     help="input image path")
+parser.add_argument("-n", "--noise_type", type=str,
+                    default=None, help="noise type(gauss|s&p)")
+parser.add_argument("--mean", type=float, default=None,
+                    help="Gaussian noise mean")
+parser.add_argument("--var", type=float, default=None,
+                    help="Gaussian noise var")
+parser.add_argument("--ratio", type=float, default=None,
+                    help="Salt and Pepper ratio")
+parser.add_argument("--amount", type=float, default=None,
+                    help="Salt and Pepper amount")
 
 
 def main(args):
     if not os.path.exists(args.out):
         os.mkdir(args.out)
     img = (skimage.io.imread(args.impath).astype(np.float32))
+    if args.noise_type is not None:
+        img = noise.add_noise(img, args.noise_type, mean=args.mean,
+                              var=args.var, spr=args.ratio, amount=args.amount)
+
     img_dehaze = dehaze.dehaze(
         img, args.patch_size, args.top_portion, args.t0, args.omega, args.out)
     skimage.io.imsave(os.path.join(args.out, 'equalize.jpg'), img_dehaze)

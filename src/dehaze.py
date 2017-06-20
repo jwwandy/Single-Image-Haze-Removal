@@ -146,5 +146,5 @@ def dehaze(img, patch_size, top_p, t0, omega, outdir):
                       np.uint8(img_dehaze))
     show_img('dehaze img(wo equalize)', img_dehaze.astype(np.uint8))
     img_equal = brightness_equalize((img_dehaze.astype(np.uint8)))
-    plt.show()
+    plt.show(block=False)
     return img_equal
