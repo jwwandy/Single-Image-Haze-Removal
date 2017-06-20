@@ -3,10 +3,11 @@ import sys
 import dehaze
 import numpy as np
 import skimage.io
+import os
 
 parser = argparse.ArgumentParser(description="Implement Recover Haze image.")
-parser.add_argument("-o", "--out", type=str, default="../result/out.jpg",
-                    help="output image path (default: ../result/out.jpg)")
+parser.add_argument("-o", "--out", type=str, default="../result/out",
+                    help="output image dir (default: ../result/out")
 parser.add_argument("-s", "--patch_size", type=int,
                     default=15, help='local patch size (default: 15)')
 parser.add_argument("-p", "--top_portion", type=float, default=0.001,
@@ -20,10 +21,12 @@ parser.add_argument("-i", "--impath", type=str, required=True,
 
 
 def main(args):
+    if not os.path.exists(args.out):
+        os.mkdir(args.out)
     img = (skimage.io.imread(args.impath).astype(np.float32))
     img_dehaze = dehaze.dehaze(
-        img, args.patch_size, args.top_portion, args.t0, args.omega)
-    skimage.io.imsave(args.out, img_dehaze)
+        img, args.patch_size, args.top_portion, args.t0, args.omega, args.out)
+    skimage.io.imsave(os.path.join(args.out, 'equalize.jpg'), img_dehaze)
 
 if __name__ == "__main__":
     args = parser.parse_args()

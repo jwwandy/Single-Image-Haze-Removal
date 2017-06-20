@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import skimage.color
 import skimage.exposure
 import skimage
+import skimage.io
+import os
 from cv2.ximgproc import guidedFilter
 
 
@@ -66,7 +68,7 @@ def get_atmosphere(img, darkch, p):
     return np.max(flatimg.take(searchidx, axis=0), axis=0)
 
 
-def get_transmission(img, atmos, darkch, omega, patch_size):
+def get_transmission(img, atmos, omega, patch_size):
     """Get the transmission esitmate in the (RGB) image data.
     Parameters
     -----------
@@ -87,7 +89,7 @@ def get_transmission(img, atmos, darkch, omega, patch_size):
     # refinement by guided filter
     refine_t = guidedFilter(img.astype(np.float32),
                             raw_t.astype(np.float32), 50, 1e-4)
-    return refine_t
+    return raw_t, refine_t
 
 
 def get_radiance(img, atmos, t, t0):
@@ -129,11 +131,19 @@ def brightness_equalize(img):
     return img_equal
 
 
-def dehaze(img, patch_size, top_p, t0, omega):
+def dehaze(img, patch_size, top_p, t0, omega, outdir):
     darkch = get_dark_channel(img, patch_size)
+    skimage.io.imsave(os.path.join(outdir, 'dark.jpg'), np.uint8(darkch))
     atmos = get_atmosphere(img, darkch, top_p)
-    refine_t = get_transmission(img, atmos, darkch, omega, patch_size)
+    raw_t, refine_t = get_transmission(img, atmos, omega, patch_size)
+
+    skimage.io.imsave(os.path.join(
+        outdir, 'raw_transmission.jpg'), (255 * raw_t).astype(np.uint8))
+    skimage.io.imsave(os.path.join(
+        outdir, 'refine_transmission.jpg'), (255 * refine_t).astype(np.uint8))
     img_dehaze = get_radiance(img, atmos, refine_t, t0)
+    skimage.io.imsave(os.path.join(outdir, 'noequalize.jpg'),
+                      np.uint8(img_dehaze))
     show_img('dehaze img(wo equalize)', img_dehaze.astype(np.uint8))
     img_equal = brightness_equalize((img_dehaze.astype(np.uint8)))
     plt.show()
